@@ -114,7 +114,7 @@ export default function MemoryGame() {
   // dynamic grid style
   const gridStyle = {
     gridTemplateColumns: `repeat(${size.cols}, minmax(0, 1fr))`,
-    gap: "0.5rem",
+    gap: "0.1rem",
   };
 
   const cellSizeClass = size.cols >= 5 ? "w-12 h-12 text-xl" : "w-16 h-16 text-2xl";

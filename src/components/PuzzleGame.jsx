@@ -257,7 +257,7 @@ export default function PuzzleGame() {
         style={{
           display: "grid",
           gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`,
-          gap: "0.5rem",
+          gap: "0.1rem",
           width: "auto",
         }}
       >
