@@ -6,7 +6,7 @@
   "restart": "Restart",
   "solved": "🎉 Puzzle solved!",
   "retry": "Retry",
-   "logic_resolve": "Complete the sequence: !",
+   "logic_resolve": "Complete the sequence:",
   "validate": "Validate",
   "logic": "Logic",
   "puzzle": "Puzzle",
