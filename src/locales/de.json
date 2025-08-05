@@ -10,6 +10,12 @@
   "validate": "Validieren",
   "logic": "Logik",
   "puzzle": "Puzzle",
-  "memory": "Gedächtnis"
-
+  "memory": "Gedächtnis",
+  "size_label": "Größe",
+  "difficulty_label": "Schwierigkeit",
+  "easy": "Einfach",
+  "normal": "Normal",
+  "hard": "Schwer",
+  "start": "Start",
+  "pairs_count": "{{count}} Paare"
 }

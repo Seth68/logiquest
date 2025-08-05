@@ -10,6 +10,12 @@
   "validate": "Validate",
   "logic": "Logic",
   "puzzle": "Puzzle",
-  "memory": "Memory"
-
+  "memory": "Memory",
+  "size_label": "Size",
+  "difficulty_label": "Difficulty",
+  "easy": "Easy",
+  "normal": "Normal",
+  "hard": "Hard",
+  "start": "Start",
+  "pairs_count": "{{count}} pairs"
 }
