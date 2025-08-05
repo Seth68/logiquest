@@ -96,7 +96,7 @@ export default function PuzzleGame() {
   const [imageSrc, setImageSrc] = useState(null); // original uploaded image data URL
   const [imageTiles, setImageTiles] = useState(null); // array of dataURLs same order as solved board (1..n*n-1,null)
 
-  // generate/reset board
+  // generate/reset board on size change
   useEffect(() => {
     resetBoard();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -131,13 +131,10 @@ export default function PuzzleGame() {
     setIsComplete(false);
     setSeconds(0);
     setRunning(false);
-    // If image mode and image loaded, (re)generate imageTiles for current size
     if (imageSrc) {
-      createImageTiles(imageSrc, size.n).then((tilesArr) => {
-        setImageTiles(tilesArr);
-      }).catch(() => {
-        setImageTiles(null);
-      });
+      createImageTiles(imageSrc, size.n)
+        .then((tilesArr) => setImageTiles(tilesArr))
+        .catch(() => setImageTiles(null));
     } else {
       setImageTiles(null);
     }
@@ -166,7 +163,6 @@ export default function PuzzleGame() {
       const newTiles = [...tiles];
       [newTiles[index], newTiles[emptyIndex]] = [newTiles[emptyIndex], newTiles[index]];
       setTiles(newTiles);
-      // check completion
       const solved = generateSolvedBoard(size.n);
       if (JSON.stringify(newTiles) === JSON.stringify(solved)) {
         setIsComplete(true);
@@ -185,7 +181,6 @@ export default function PuzzleGame() {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => {
-        // create canvas sized to square of min(img.width, img.height) to preserve ratio and center crop
         const sizePx = Math.min(img.width, img.height);
         const sx = (img.width - sizePx) / 2;
         const sy = (img.height - sizePx) / 2;
@@ -201,7 +196,6 @@ export default function PuzzleGame() {
         for (let r = 0; r < n; r++) {
           for (let c = 0; c < n; c++) {
             if (r === n - 1 && c === n - 1) {
-              // last tile is the empty slot
               tilesArr.push(null);
             } else {
               const x = c * tilePx;
@@ -230,28 +224,21 @@ export default function PuzzleGame() {
     reader.onload = (ev) => {
       const dataUrl = ev.target.result;
       setImageSrc(dataUrl);
-      // generate tiles for current size
       createImageTiles(dataUrl, size.n)
-        .then((tilesArr) => {
-          setImageTiles(tilesArr);
-          // when switching to image mode, optionally start a new shuffled board
-          // we keep the same numeric tile ordering, only visuals change
-        })
-        .catch(() => {
-          setImageTiles(null);
-        });
+        .then((tilesArr) => setImageTiles(tilesArr))
+        .catch(() => setImageTiles(null));
     };
     reader.readAsDataURL(file);
   }
 
-  // compute CSS grid and cell classes
+  // compute CSS grid and cell classes (fixed sizes in px to avoid gaps)
   const gridCols = size.n;
-  const cellClass =
-    size.n <= 3 ? "w-20 h-20" : size.n === 4 ? "w-16 h-16" : "w-12 h-12";
+  const cellClass = size.n <= 3 ? "w-20 h-20" : size.n === 4 ? "w-16 h-16" : "w-12 h-12";
+  const cellPx = size.n <= 3 ? 80 : size.n === 4 ? 64 : 48;
 
   // Render tile content: if imageMode and imageTiles available, use corresponding dataURL
-  function renderTileContent(tileValue, index) {
-    const solvedIndex = tileValue === null ? null : tileValue - 1; // value 1..N-1 maps to index 0..
+  function renderTileContent(tileValue) {
+    const solvedIndex = tileValue === null ? null : tileValue - 1;
     if (imageMode && imageTiles && tileValue !== null) {
       const dataUrl = imageTiles[solvedIndex];
       if (dataUrl) {
@@ -259,13 +246,12 @@ export default function PuzzleGame() {
           <img
             src={dataUrl}
             alt={`tile-${tileValue}`}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover block"
             draggable={false}
           />
         );
       }
     }
-    // fallback: number
     return <div className="text-xl font-bold">{tileValue !== null ? tileValue : ""}</div>;
   }
 
@@ -301,8 +287,7 @@ export default function PuzzleGame() {
             value={imageMode ? "image" : "numbers"}
             onChange={(e) => {
               const v = e.target.value;
-              if (v === "image") setImageMode(true);
-              else setImageMode(false);
+              setImageMode(v === "image");
             }}
             className="p-2 rounded border bg-white text-black"
           >
@@ -347,9 +332,9 @@ export default function PuzzleGame() {
         className="mx-auto"
         style={{
           display: "grid",
-          gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`,
-          gap: "0", // tighten spacing
-          width: "auto",
+          gridTemplateColumns: `repeat(${gridCols}, ${cellPx}px)`,
+          gap: "0px",
+          width: `${gridCols * cellPx}px`,
           justifyContent: "center",
         }}
       >
@@ -357,7 +342,7 @@ export default function PuzzleGame() {
           <div
             key={idx}
             onClick={() => moveTile(idx)}
-            className={`flex items-center justify-center border rounded cursor-pointer select-none transition-all duration-150 bg-white text-black overflow-hidden ${cellClass} ${
+            className={`flex items-center justify-center box-border border-0 rounded-none cursor-pointer select-none transition-all duration-150 bg-white text-black overflow-hidden ${cellClass} ${
               tile === null ? "bg-gray-300 cursor-default" : "hover:brightness-95"
             }`}
           >
