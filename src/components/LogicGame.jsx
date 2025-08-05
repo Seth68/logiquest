@@ -24,13 +24,13 @@ export default function LogicGame() {
         setCurrent((prev) => (prev + 1) % suites.length);
       }, 1000);
     } else {
-      setFeedback(t("restart"));
+      setFeedback(t("retry"));
     }
   };
 
   return (
     <div className="bg-white text-gray-800 p-6 rounded-xl shadow-lg w-full max-w-md mx-auto">
-      <h2 className="text-2xl font-bold mb-4">Complète la suite :</h2>
+      <h2 className="text-2xl font-bold mb-4">{t("logic_resolve")}</h2>
       <div className="text-xl mb-4">
         {currentGame.sequence.join(', ')}, ?
       </div>
@@ -44,7 +44,7 @@ export default function LogicGame() {
         className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
         onClick={checkAnswer}
       >
-        Valider
+        {t("validate")}
       </button>
       {feedback && <p className="mt-3">{feedback}</p>}
     </div>

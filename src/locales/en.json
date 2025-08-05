@@ -4,5 +4,12 @@
   "memory_game": "Memory Game 🧠",
   "puzzle_game": "Puzzle 3x3 🧩",
   "restart": "Restart",
-  "solved": "🎉 Puzzle solved!"
+  "solved": "🎉 Puzzle solved!",
+  "retry": "Retry",
+   "logic_resolve": "Complete the sequence: !",
+  "validate": "Validate",
+  "logic": "Logic",
+  "puzzle": "Puzzle",
+  "memory": "Memory"
+
 }

@@ -32,7 +32,7 @@ function App() {
             activeTab === "logic" ? "bg-blue-600 text-white" : "bg-white text-black"
           }`}
         >
-          Logique
+          {t("logic")}
         </button>
         <button
           onClick={() => setActiveTab("puzzle")}
@@ -40,7 +40,7 @@ function App() {
             activeTab === "puzzle" ? "bg-blue-600 text-white" : "bg-white text-black"
           }`}
         >
-          Puzzle
+          {t("puzzle")}
         </button>
         <button
           onClick={() => setActiveTab("memory")}
@@ -48,7 +48,7 @@ function App() {
             activeTab === "memory" ? "bg-blue-600 text-white" : "bg-white text-black"
           }`}
         >
-          Mémoire
+          {t("memory")}
         </button>
       </div>
       {renderGame()}
