@@ -19,5 +19,9 @@
   "start": "Start",
   "pairs_count": "{{count}} Paare",
   "pause": "Pause",
-  "time": "Zeit"
+  "time": "Zeit",
+  "mode_label": "Modus",
+  "numbers" : "Zahlen",
+  "image" : "Bild",
+  "upload_label" : "Bild"
 }

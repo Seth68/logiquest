@@ -19,5 +19,10 @@
   "start": "Lancer",
   "pairs_count": "{{count}} paires",
   "pause": "Pause",
-  "time": "Temps"
+  "time": "Temps",
+  "mode_label": "Mode",
+  "numbers" : "Nombres",
+  "image" : "Image",
+  "upload_label" : "Image"
+
 }
