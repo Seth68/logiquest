@@ -342,7 +342,7 @@ export default function PuzzleGame() {
           <div
             key={idx}
             onClick={() => moveTile(idx)}
-            className={`flex items-center justify-center box-border border-0 rounded-none cursor-pointer select-none transition-all duration-150 bg-white text-black overflow-hidden ${cellClass} ${
+            className={`flex items-center justify-center box-border border-[0.5px] border-gray-200 rounded-none cursor-pointer select-none transition-all duration-150 bg-white text-black overflow-hidden ${cellClass} ${
               tile === null ? "bg-gray-300 cursor-default" : "hover:brightness-95"
             }`}
           >
