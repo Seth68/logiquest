@@ -1,35 +1,58 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+// App.jsx
+import { useState } from "react";
+import LangSelector from "./components/LangSelector";
+import LogicGame from "./components/LogicGame";
+import PuzzleGame from "./components/PuzzleGame";
+import MemoryGame from "./components/MemoryGame";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [activeTab, setActiveTab] = useState("logic");
+
+  const renderGame = () => {
+    switch (activeTab) {
+      case "logic":
+        return <LogicGame />;
+      case "puzzle":
+        return <PuzzleGame />;
+      case "memory":
+        return <MemoryGame />;
+      default:
+        return null;
+    }
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
+    <div className="min-h-screen flex flex-col items-center justify-center gap-6 p-4">
+      <LangSelector />
+      <div className="flex gap-4 mb-4">
+        <button
+          onClick={() => setActiveTab("logic")}
+          className={`px-4 py-2 rounded ${
+            activeTab === "logic" ? "bg-blue-600 text-white" : "bg-white text-black"
+          }`}
+        >
+          Logique
         </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
+        <button
+          onClick={() => setActiveTab("puzzle")}
+          className={`px-4 py-2 rounded ${
+            activeTab === "puzzle" ? "bg-blue-600 text-white" : "bg-white text-black"
+          }`}
+        >
+          Puzzle
+        </button>
+        <button
+          onClick={() => setActiveTab("memory")}
+          className={`px-4 py-2 rounded ${
+            activeTab === "memory" ? "bg-blue-600 text-white" : "bg-white text-black"
+          }`}
+        >
+          Mémoire
+        </button>
       </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+      {renderGame()}
+    </div>
+  );
 }
 
-export default App
+export default App;
