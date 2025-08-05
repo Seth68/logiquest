@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from "react-i18next";
 
 const suites = [
   { sequence: [2, 4, 6], answer: 8 },
@@ -11,19 +12,19 @@ export default function LogicGame() {
   const [current, setCurrent] = useState(0);
   const [userInput, setUserInput] = useState('');
   const [feedback, setFeedback] = useState('');
-
+  const { t } = useTranslation(); // ← AJOUT
   const currentGame = suites[current];
 
   const checkAnswer = () => {
     if (parseInt(userInput) === currentGame.answer) {
-      setFeedback(t'✅ Bravo !');
+      setFeedback(t("solved"));
       setTimeout(() => {
         setFeedback('');
         setUserInput('');
         setCurrent((prev) => (prev + 1) % suites.length);
       }, 1000);
     } else {
-      setFeedback(t'❌ Mauvaise réponse, essaie encore.');
+      setFeedback(t("restart"));
     }
   };
 
