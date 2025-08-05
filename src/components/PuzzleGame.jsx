@@ -1,10 +1,12 @@
 // components/PuzzleGame.jsx
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 export default function PuzzleGame() {
   const initial = [1, 2, 3, 4, 5, 6, 7, 8, null];
   const [tiles, setTiles] = useState(shuffle(initial));
   const [isComplete, setIsComplete] = useState(false);
+  const { t } = useTranslation(); // ← AJOUT
 
   function shuffle(array) {
     let shuffled = [...array];
@@ -46,7 +48,7 @@ export default function PuzzleGame() {
 
   return (
     <div className="text-center">
-      <h2 className="text-2xl font-semibold mb-4">Puzzle 3x3 🧩</h2>
+      <h2 className="text-2xl font-semibold mb-4">{t("puzzle_game")}</h2>
       <div className="grid grid-cols-3 gap-2 mx-auto w-fit">
         {tiles.map((tile, i) => (
           <div
@@ -61,13 +63,13 @@ export default function PuzzleGame() {
         ))}
       </div>
       {isComplete && (
-        <p className="mt-4 text-green-500 font-semibold">🎉 Puzzle résolu !</p>
+        <p className="mt-4 text-green-500 font-semibold">{t("solved")}</p>
       )}
       <button
         onClick={restartGame}
         className="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded"
       >
-        Recommencer
+        {t("restart")}
       </button>
     </div>
   );

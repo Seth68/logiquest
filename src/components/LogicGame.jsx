@@ -16,14 +16,14 @@ export default function LogicGame() {
 
   const checkAnswer = () => {
     if (parseInt(userInput) === currentGame.answer) {
-      setFeedback('✅ Bravo !');
+      setFeedback(t'✅ Bravo !');
       setTimeout(() => {
         setFeedback('');
         setUserInput('');
         setCurrent((prev) => (prev + 1) % suites.length);
       }, 1000);
     } else {
-      setFeedback('❌ Mauvaise réponse, essaie encore.');
+      setFeedback(t'❌ Mauvaise réponse, essaie encore.');
     }
   };
 

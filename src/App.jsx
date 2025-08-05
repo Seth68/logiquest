@@ -4,10 +4,11 @@ import LangSelector from "./components/LangSelector";
 import LogicGame from "./components/LogicGame";
 import PuzzleGame from "./components/PuzzleGame";
 import MemoryGame from './components/MemoryGame';
+import { useTranslation } from 'react-i18next';
 
 function App() {
   const [activeTab, setActiveTab] = useState("logic");
-
+  const { t } = useTranslation();
   const renderGame = () => {
     switch (activeTab) {
       case "logic":

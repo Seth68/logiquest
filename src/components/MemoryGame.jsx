@@ -1,5 +1,6 @@
 // src/components/MemoryGame.jsx
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const initialCards = ["🍎", "🍌", "🍇", "🍉", "🍓", "🍍"];
 const shuffledCards = [...initialCards, ...initialCards].sort(() => Math.random() - 0.5);
@@ -9,6 +10,7 @@ export default function MemoryGame() {
   const [flipped, setFlipped] = useState([]);
   const [matched, setMatched] = useState([]);
   const [disabled, setDisabled] = useState(false);
+  const { t } = useTranslation(); // ← AJOUT
 
   useEffect(() => {
     if (flipped.length === 2) {
@@ -38,7 +40,7 @@ export default function MemoryGame() {
 
   return (
     <div className="text-center">
-      <h2 className="text-2xl font-semibold mb-4">Jeu de mémoire 🧠</h2>
+      <h2 className="text-2xl font-semibold mb-4">{t("memory_game")}</h2>
       <div className="grid grid-cols-4 gap-3 w-fit mx-auto">
         {cards.map((card, index) => {
           const isFlipped = flipped.includes(index) || matched.includes(index);
@@ -56,13 +58,13 @@ export default function MemoryGame() {
         })}
       </div>
       {matched.length === cards.length && (
-        <p className="mt-4 text-green-400 font-medium">🎉 Bravo ! Vous avez gagné !</p>
+        <p className="mt-4 text-green-400 font-medium">{t("solved")}</p>
       )}
       <button
         onClick={restartGame}
         className="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded"
       >
-        Recommencer
+        {t("restart")}
       </button>
     </div>
   );

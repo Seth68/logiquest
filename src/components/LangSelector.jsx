@@ -1,34 +1,17 @@
-// LangSelector.jsx
-import { useState } from "react";
-
-const translations = {
-  en: {
-    welcome: "Welcome to LogiQuest!",
-  },
-  fr: {
-    welcome: "Bienvenue sur LogiQuest !",
-  },
-  de: {
-    welcome: "Willkommen bei LogiQuest!",
-  },
-};
+import { useTranslation } from 'react-i18next';
 
 export default function LangSelector() {
-  const [lang, setLang] = useState("fr");
+  const { i18n } = useTranslation();
+
+  const changeLanguage = (lng) => {
+    i18n.changeLanguage(lng);
+  };
 
   return (
-    <div className="text-center space-y-4">
-      <select
-        className="p-2 rounded border"
-        value={lang}
-        onChange={(e) => setLang(e.target.value)}
-      >
-        <option value="fr">Français</option>
-        <option value="en">English</option>
-        <option value="de">Deutsch</option>
-      </select>
-
-      <h1 className="text-3xl font-bold">{translations[lang].welcome}</h1>
+    <div className="flex gap-2 justify-center mb-4">
+      <button onClick={() => changeLanguage('fr')}>🇫🇷 FR</button>
+      <button onClick={() => changeLanguage('en')}>🇬🇧 EN</button>
+      <button onClick={() => changeLanguage('de')}>🇩🇪 DE</button>
     </div>
   );
 }
