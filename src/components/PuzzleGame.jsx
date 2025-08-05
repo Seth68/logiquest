@@ -37,10 +37,10 @@ function isSolvable(board, gridSize) {
     const blankIndex = board.indexOf(null);
     const rowFromTop = Math.floor(blankIndex / gridSize) + 1;
     const rowFromBottom = gridSize - (rowFromTop - 1);
-    if ((rowFromBottom % 2 === 0 && inv % 2 === 1) || (rowFromBottom % 2 === 1 && inv % 2 === 0)) {
-      return true;
-    }
-    return false;
+    return (
+      (rowFromBottom % 2 === 0 && inv % 2 === 1) ||
+      (rowFromBottom % 2 === 1 && inv % 2 === 0)
+    );
   }
 }
 
@@ -63,9 +63,16 @@ function generateShuffledSolvable(n) {
   do {
     shuffled = shuffleArray(base);
     attempts++;
-  } while ((!isSolvable(shuffled, n) || JSON.stringify(shuffled) === JSON.stringify(base)) && attempts < 2000);
+  } while (
+    (!isSolvable(shuffled, n) ||
+      JSON.stringify(shuffled) === JSON.stringify(base)) &&
+    attempts < 2000
+  );
 
-  if (!isSolvable(shuffled, n) || JSON.stringify(shuffled) === JSON.stringify(base)) {
+  if (
+    !isSolvable(shuffled, n) ||
+    JSON.stringify(shuffled) === JSON.stringify(base)
+  ) {
     shuffled = [...base];
     if (n * n >= 3) {
       [shuffled[0], shuffled[1]] = [shuffled[1], shuffled[0]];
@@ -78,12 +85,13 @@ function generateShuffledSolvable(n) {
   return shuffled;
 }
 
-/* --- Component --- */
 export default function PuzzleGame() {
   const { t } = useTranslation();
 
   const [size, setSize] = useState(SIZE_OPTIONS[0]);
-  const [tiles, setTiles] = useState(() => generateShuffledSolvable(SIZE_OPTIONS[0].n));
+  const [tiles, setTiles] = useState(() =>
+    generateShuffledSolvable(SIZE_OPTIONS[0].n)
+  );
   const [isComplete, setIsComplete] = useState(false);
 
   // Timer
@@ -93,21 +101,22 @@ export default function PuzzleGame() {
 
   // Image mode
   const [imageMode, setImageMode] = useState(false);
-  const [imageSrc, setImageSrc] = useState(null); // original uploaded image data URL
-  const [imageTiles, setImageTiles] = useState(null); // array of dataURLs same order as solved board (1..n*n-1,null)
+  const [imageSrc, setImageSrc] = useState(null);
+  const [imageTiles, setImageTiles] = useState(null);
 
-  // generate/reset board on size change
+  // Reset board when size changes
   useEffect(() => {
     resetBoard();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [size]);
 
+  // Stop timer on completion
   useEffect(() => {
     if (isComplete) stopTimer();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isComplete]);
 
-  // Timer control
+  // Timer
   useEffect(() => {
     if (running) {
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -131,6 +140,7 @@ export default function PuzzleGame() {
     setIsComplete(false);
     setSeconds(0);
     setRunning(false);
+
     if (imageSrc) {
       createImageTiles(imageSrc, size.n)
         .then((tilesArr) => setImageTiles(tilesArr))
@@ -151,9 +161,10 @@ export default function PuzzleGame() {
   function isAdjacent(index, emptyIndex, n) {
     const rowI = Math.floor(index / n);
     const rowE = Math.floor(emptyIndex / n);
-    if (rowI === rowE && Math.abs(index - emptyIndex) === 1) return true;
-    if (Math.abs(index - emptyIndex) === n) return true;
-    return false;
+    return (
+      (rowI === rowE && Math.abs(index - emptyIndex) === 1) ||
+      Math.abs(index - emptyIndex) === n
+    );
   }
 
   function moveTile(index) {
@@ -161,8 +172,12 @@ export default function PuzzleGame() {
     const emptyIndex = tiles.indexOf(null);
     if (isAdjacent(index, emptyIndex, size.n)) {
       const newTiles = [...tiles];
-      [newTiles[index], newTiles[emptyIndex]] = [newTiles[emptyIndex], newTiles[index]];
+      [newTiles[index], newTiles[emptyIndex]] = [
+        newTiles[emptyIndex],
+        newTiles[index],
+      ];
       setTiles(newTiles);
+
       const solved = generateSolvedBoard(size.n);
       if (JSON.stringify(newTiles) === JSON.stringify(solved)) {
         setIsComplete(true);
@@ -176,7 +191,6 @@ export default function PuzzleGame() {
     return `${mm}:${ss}`;
   }
 
-  // Image handling: create tile images from an uploaded image (returns array of dataURLs)
   async function createImageTiles(dataUrl, n) {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -204,7 +218,17 @@ export default function PuzzleGame() {
               tileCanvas.width = tilePx;
               tileCanvas.height = tilePx;
               const tctx = tileCanvas.getContext("2d");
-              tctx.drawImage(off, x, y, tilePx, tilePx, 0, 0, tilePx, tilePx);
+              tctx.drawImage(
+                off,
+                x,
+                y,
+                tilePx,
+                tilePx,
+                0,
+                0,
+                tilePx,
+                tilePx
+              );
               tilesArr.push(tileCanvas.toDataURL());
             }
           }
@@ -216,7 +240,6 @@ export default function PuzzleGame() {
     });
   }
 
-  // Handle file input
   function onFileChange(e) {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
@@ -231,37 +254,36 @@ export default function PuzzleGame() {
     reader.readAsDataURL(file);
   }
 
-  // compute CSS grid and cell classes (fixed sizes in px to avoid gaps)
   const gridCols = size.n;
-  const cellClass = size.n <= 3 ? "w-20 h-20" : size.n === 4 ? "w-16 h-16" : "w-12 h-12";
-  const cellPx = size.n <= 3 ? 80 : size.n === 4 ? 64 : 48;
+  const cellClass =
+    size.n <= 3 ? "w-20 h-20" : size.n === 4 ? "w-16 h-16" : "w-12 h-12";
 
-  // Render tile content: if imageMode and imageTiles available, use corresponding dataURL
   function renderTileContent(tileValue) {
-    const solvedIndex = tileValue === null ? null : tileValue - 1;
     if (imageMode && imageTiles && tileValue !== null) {
-      const dataUrl = imageTiles[solvedIndex];
+      const dataUrl = imageTiles[tileValue - 1];
       if (dataUrl) {
         return (
           <img
             src={dataUrl}
             alt={`tile-${tileValue}`}
-            className="w-full h-full object-cover block"
+            className="w-full h-full object-cover"
             draggable={false}
           />
         );
       }
     }
-    return <div className="text-xl font-bold">{tileValue !== null ? tileValue : ""}</div>;
+    return (
+      <span className="text-xl font-bold">
+        {tileValue !== null ? tileValue : ""}
+      </span>
+    );
   }
-
-  const hasWon = isComplete;
 
   return (
     <div className="text-center">
       <h2 className="text-2xl font-semibold mb-4">{t("puzzle_game")}</h2>
 
-      {/* controls */}
+      {/* Controls */}
       <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-4">
         <div className="flex items-center gap-2">
           <label className="font-medium">{t("size_label")}:</label>
@@ -282,30 +304,28 @@ export default function PuzzleGame() {
         </div>
 
         <div className="flex items-center gap-3">
-          <label className="font-medium">{t("mode_label") || "Mode"}</label>
+          <label className="font-medium">{t("mode_label")}</label>
           <select
             value={imageMode ? "image" : "numbers"}
-            onChange={(e) => {
-              const v = e.target.value;
-              setImageMode(v === "image");
-            }}
+            onChange={(e) => setImageMode(e.target.value === "image")}
             className="p-2 rounded border bg-white text-black"
           >
-            <option value="numbers">{t("numbers") || "Numbers"}</option>
-            <option value="image">{t("image") || "Image"}</option>
+            <option value="numbers">{t("numbers")}</option>
+            <option value="image">{t("image")}</option>
           </select>
         </div>
 
         {imageMode && (
           <div className="flex items-center gap-2">
-            <label className="font-medium">{t("upload_label") || "Upload"}</label>
+            <label className="font-medium">{t("upload_label")}</label>
             <input type="file" accept="image/*" onChange={onFileChange} />
           </div>
         )}
 
         <div className="flex items-center gap-2">
           <div className="font-medium">
-            {t("time")}: <span className="font-mono">{formatTime(seconds)}</span>
+            {t("time")}:{" "}
+            <span className="font-mono">{formatTime(seconds)}</span>
           </div>
           <div className="flex gap-2">
             <button
@@ -327,32 +347,36 @@ export default function PuzzleGame() {
         </div>
       </div>
 
-      {/* grid */}
+      {/* Grid */}
       <div
         className="mx-auto"
         style={{
           display: "grid",
-          gridTemplateColumns: `repeat(${gridCols}, ${cellPx}px)`,
-          gap: "0px",
-          width: `${gridCols * cellPx}px`,
-          justifyContent: "center",
+          gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`,
+          gap: "0",
         }}
       >
         {tiles.map((tile, idx) => (
           <div
             key={idx}
             onClick={() => moveTile(idx)}
-            className={`flex items-center justify-center box-border border-[1px] border-gray-200 rounded-none cursor-pointer select-none transition-all duration-150 bg-white text-black overflow-hidden ${cellClass} ${
-              tile === null ? "bg-gray-300 cursor-default" : "hover:brightness-95"
+            className={`flex items-center justify-center border-[0.5px] border-gray-200 rounded cursor-pointer select-none transition-all duration-150 bg-white text-black overflow-hidden ${cellClass} ${
+              tile === null
+                ? "bg-gray-300 cursor-default"
+                : "hover:brightness-95"
             }`}
           >
-            <div className="w-full h-full">{renderTileContent(tile, idx)}</div>
+            <div className="w-full h-full flex items-center justify-center">
+              {renderTileContent(tile)}
+            </div>
           </div>
         ))}
       </div>
 
-      {/* status */}
-      {hasWon && <p className="mt-4 text-green-500 font-semibold">{t("solved")}</p>}
+      {/* Status */}
+      {isComplete && (
+        <p className="mt-4 text-green-500 font-semibold">{t("solved")}</p>
+      )}
     </div>
   );
 }
