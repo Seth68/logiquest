@@ -17,5 +17,7 @@
   "normal": "Normal",
   "hard": "Hard",
   "start": "Start",
-  "pairs_count": "{{count}} pairs"
+  "pairs_count": "{{count}} pairs",
+  "pause": "Pause",
+  "time": "Time"
 }

@@ -17,5 +17,7 @@
   "normal": "Normal",
   "hard": "Difficile",
   "start": "Lancer",
-  "pairs_count": "{{count}} paires"
+  "pairs_count": "{{count}} paires",
+  "pause": "Pause",
+  "time": "Temps"
 }
