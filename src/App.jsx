@@ -3,7 +3,7 @@ import { useState } from "react";
 import LangSelector from "./components/LangSelector";
 import LogicGame from "./components/LogicGame";
 import PuzzleGame from "./components/PuzzleGame";
-import MemoryGame from "./components/MemoryGame";
+import MemoryGame from './components/MemoryGame';
 
 function App() {
   const [activeTab, setActiveTab] = useState("logic");
