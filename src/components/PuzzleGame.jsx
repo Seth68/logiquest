@@ -99,6 +99,9 @@ export default function PuzzleGame() {
   const [seconds, setSeconds] = useState(0);
   const intervalRef = useRef(null);
 
+  // Move counter
+  const [moves, setMoves] = useState(0);
+
   // Image mode
   const [imageMode, setImageMode] = useState(false);
   const [imageSrc, setImageSrc] = useState(null);
@@ -116,7 +119,7 @@ export default function PuzzleGame() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isComplete]);
 
-  // Timer
+  // Timer effect
   useEffect(() => {
     if (running) {
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -139,6 +142,7 @@ export default function PuzzleGame() {
     setTiles(shuffled);
     setIsComplete(false);
     setSeconds(0);
+    setMoves(0);
     setRunning(false);
 
     if (imageSrc) {
@@ -171,6 +175,9 @@ export default function PuzzleGame() {
     if (isComplete) return;
     const emptyIndex = tiles.indexOf(null);
     if (isAdjacent(index, emptyIndex, size.n)) {
+      // start timer on first valid move
+      if (!running) setRunning(true);
+
       const newTiles = [...tiles];
       [newTiles[index], newTiles[emptyIndex]] = [
         newTiles[emptyIndex],
@@ -178,6 +185,10 @@ export default function PuzzleGame() {
       ];
       setTiles(newTiles);
 
+      // increment move counter
+      setMoves((m) => m + 1);
+
+      // check completion
       const solved = generateSolvedBoard(size.n);
       if (JSON.stringify(newTiles) === JSON.stringify(solved)) {
         setIsComplete(true);
@@ -327,6 +338,11 @@ export default function PuzzleGame() {
             {t("time")}:{" "}
             <span className="font-mono">{formatTime(seconds)}</span>
           </div>
+
+          <div className="font-medium">
+            {t("moves")}: <span className="font-mono">{moves}</span>
+          </div>
+
           <div className="flex gap-2">
             <button
               onClick={() => {
@@ -353,14 +369,14 @@ export default function PuzzleGame() {
         style={{
           display: "grid",
           gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`,
-          gap: "0",
+          gap: "0.1rem",
         }}
       >
         {tiles.map((tile, idx) => (
           <div
             key={idx}
             onClick={() => moveTile(idx)}
-            className={`flex items-center justify-center border-[0.5px] border-gray-200 rounded cursor-pointer select-none transition-all duration-150 bg-white text-black overflow-hidden ${cellClass} ${
+            className={`flex items-center justify-center border-0 border-gray-200 rounded cursor-pointer select-none transition-all duration-150 bg-white text-black overflow-hidden ${cellClass} ${
               tile === null
                 ? "bg-gray-300 cursor-default"
                 : "hover:brightness-95"

@@ -1,12 +1,8 @@
 // src/components/MemoryGame.jsx
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-const EMOJI_POOL = [
-  "🍎","🍌","🍇","🍉","🍓","🍍","🍒","🍑","🥝","🍋",
-  "🍊","🥥","🍐","🍈","🍏","🥭","🍅","🥕","🌽","🥑"
-];
-
+/* --- Configurations (taille & difficulté) --- */
 const SIZE_OPTIONS = [
   { id: "3x4", rows: 3, cols: 4 },
   { id: "4x4", rows: 4, cols: 4 },
@@ -19,47 +15,79 @@ const DIFFICULTY = {
   hard: { flipDelay: 350, preview: 0 },
 };
 
-function shuffle(array) {
-  const arr = [...array];
-  for (let i = arr.length - 1; i > 0; i--) {
+const EMOJI_POOL = [
+  "🍎","🍌","🍇","🍉","🍓","🍍","🍒","🍑","🥝","🍋",
+  "🍊","🥥","🍐","🍈","🍏","🥭","🍅","🥕","🌽","🥑"
+];
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
+    [a[i], a[j]] = [a[j], a[i]];
   }
-  return arr;
+  return a;
 }
 
 function generateDeck(rows, cols) {
   const total = rows * cols;
-  if (total % 2 !== 0) throw new Error("Total cards must be even");
   const pairs = total / 2;
   const pool = shuffle(EMOJI_POOL).slice(0, pairs);
-  const deck = shuffle([...pool, ...pool]);
-  return deck;
+  return shuffle([...pool, ...pool]);
 }
 
 export default function MemoryGame() {
   const { t } = useTranslation();
 
-  const [size, setSize] = useState(SIZE_OPTIONS[0]); // default 3x4
+  const [size, setSize] = useState(SIZE_OPTIONS[0]);
   const [difficulty, setDifficulty] = useState("normal");
-  const [cards, setCards] = useState(() =>
-    generateDeck(SIZE_OPTIONS[0].rows, SIZE_OPTIONS[0].cols)
-  );
-  const [flipped, setFlipped] = useState([]); // indices
-  const [matched, setMatched] = useState([]); // indices
+  const [cards, setCards] = useState(() => generateDeck(SIZE_OPTIONS[0].rows, SIZE_OPTIONS[0].cols));
+  const [flipped, setFlipped] = useState([]); // indices currently flipped
+  const [matched, setMatched] = useState([]); // matched indices
   const [disabled, setDisabled] = useState(false);
   const [started, setStarted] = useState(true);
   const timeoutRef = useRef(null);
 
+  // sizes: compute cell size px depending on number of cols
+  const cellPx = size.cols >= 5 ? 48 : size.cols === 4 ? 64 : 80;
+  const gridTemplate = `repeat(${size.cols}, ${cellPx}px)`;
+
   useEffect(() => {
+    // when size or difficulty changes, reset deck
+    startNewGame();
     // cleanup on unmount
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [size, difficulty]);
 
-  // start or restart game according to current size/difficulty
-  function startGame() {
+  useEffect(() => {
+    // when two flipped, compare
+    if (flipped.length === 2) {
+      setDisabled(true);
+      timeoutRef.current = setTimeout(() => {
+        const [a, b] = flipped;
+        if (cards[a] === cards[b]) {
+          setMatched((prev) => [...prev, a, b]);
+        }
+        setFlipped([]);
+        setDisabled(false);
+        timeoutRef.current = null;
+      }, DIFFICULTY[difficulty].flipDelay);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flipped]);
+
+  useEffect(() => {
+    // win detection
+    if (matched.length > 0 && matched.length === cards.length) {
+      // all matched
+      // (you could add celebration)
+    }
+  }, [matched, cards.length]);
+
+  function startNewGame() {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     const deck = generateDeck(size.rows, size.cols);
     setCards(deck);
@@ -68,11 +96,11 @@ export default function MemoryGame() {
     setDisabled(false);
     setStarted(true);
 
-    // initial preview based on difficulty
+    // preview logic
     const previewMs = DIFFICULTY[difficulty].preview;
     if (previewMs > 0) {
-      // show all cards for previewMs ms, then hide them
-      setFlipped(cards.map((_, i) => i)); // temporarily flip all
+      // flip all for preview, then hide
+      setFlipped(deck.map((_, i) => i));
       timeoutRef.current = setTimeout(() => {
         setFlipped([]);
         timeoutRef.current = null;
@@ -80,46 +108,34 @@ export default function MemoryGame() {
     }
   }
 
-  // when user clicks card
   function handleClick(index) {
-    if (!started) return;
-    if (disabled) return;
+    if (!started || disabled) return;
     if (flipped.includes(index) || matched.includes(index)) return;
 
     if (flipped.length === 0) {
       setFlipped([index]);
       return;
     }
-
     if (flipped.length === 1) {
-      const firstIndex = flipped[0];
-      const secondIndex = index;
-      // flip second
-      setFlipped([firstIndex, secondIndex]);
-      setDisabled(true);
-
-      const flipDelay = DIFFICULTY[difficulty].flipDelay;
-      timeoutRef.current = setTimeout(() => {
-        // compare
-        if (cards[firstIndex] === cards[secondIndex]) {
-          setMatched((prev) => [...prev, firstIndex, secondIndex]);
-        }
-        setFlipped([]);
-        setDisabled(false);
-        timeoutRef.current = null;
-      }, flipDelay);
+      setFlipped((prev) => [...prev, index]);
+      return;
     }
   }
 
-  // dynamic grid style
-  const gridStyle = {
-    gridTemplateColumns: `repeat(${size.cols}, minmax(0, 1fr))`,
-    gap: "0.1rem",
-  };
+  function restartGame() {
+    startNewGame();
+  }
 
-  const cellSizeClass = size.cols >= 5 ? "w-12 h-12 text-xl" : "w-16 h-16 text-2xl";
-
-  const hasWon = matched.length === cards.length && cards.length > 0;
+  // render tile: centered emoji or placeholder
+  function renderTile(index) {
+    const isRevealed = flipped.includes(index) || matched.includes(index);
+    const content = isRevealed ? cards[index] : "❓";
+    return (
+      <div className="w-full h-full flex items-center justify-center select-none">
+        <span className="text-2xl leading-none">{content}</span>
+      </div>
+    );
+  }
 
   return (
     <div className="text-center">
@@ -127,7 +143,6 @@ export default function MemoryGame() {
 
       {/* Controls */}
       <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-4">
-        {/* Size selector */}
         <div className="flex items-center gap-2">
           <label className="font-medium">{t("size_label")}:</label>
           <select
@@ -146,7 +161,6 @@ export default function MemoryGame() {
           </select>
         </div>
 
-        {/* Difficulty selector (beside the size) */}
         <div className="flex items-center gap-3">
           <label className="font-medium">{t("difficulty_label")}:</label>
           <div className="flex items-center gap-2">
@@ -186,10 +200,9 @@ export default function MemoryGame() {
           </div>
         </div>
 
-        {/* Start / Restart */}
         <div>
           <button
-            onClick={() => startGame()}
+            onClick={restartGame}
             className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded"
           >
             {t("start")}
@@ -197,41 +210,50 @@ export default function MemoryGame() {
         </div>
       </div>
 
-      {/* Grid */}
+      {/* Grid: fixed column widths so tiles touch */}
       <div
-        className="mx-auto bg-transparent"
-        style={{ display: "grid", ...gridStyle, width: "auto" }}
+        className="mx-auto"
+        style={{
+          display: "grid",
+          gridTemplateColumns: gridTemplate,
+          gap: "0.1rem",
+        }}
       >
-        {cards.map((card, index) => {
-          const isFlipped = flipped.includes(index) || matched.includes(index) || (DIFFICULTY[difficulty].preview > 0 && flipped.length === cards.length);
-          return (
-            <div
-              key={index}
-              onClick={() => handleClick(index)}
-              className={`flex items-center justify-center border rounded cursor-pointer select-none transition-all duration-200 bg-white text-black ${cellSizeClass} ${
-                matched.includes(index) ? "opacity-70" : ""
-              }`}
-            >
-              <div>{isFlipped ? card : "❓"}</div>
-            </div>
-          );
-        })}
+        {cards.map((_, idx) => (
+          <div
+            key={idx}
+            onClick={() => handleClick(idx)}
+            className={`flex items-center justify-center box-border border-[0.5px] border-gray-200 ${cellSizeClass(
+              size.cols
+            )} bg-white cursor-pointer select-none`}
+          >
+            {renderTile(idx)}
+          </div>
+        ))}
       </div>
 
-      {/* Status & Controls */}
-      {hasWon && (
-        <p className="mt-4 text-green-400 font-medium">{t("solved")}</p>
-      )}
-
+      {/* Footer */}
       <div className="mt-4 flex items-center justify-center gap-4">
+        <div className="text-sm text-gray-700">
+          {t("pairs_count", { count: cards.length / 2 })}
+        </div>
+        {matched.length === cards.length && (
+          <div className="text-green-500 font-semibold">{t("solved")}</div>
+        )}
         <button
-          onClick={() => startGame()}
-          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded"
+          onClick={restartGame}
+          className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded"
         >
           {t("restart")}
         </button>
-        <div className="text-sm text-gray-300">{t("pairs_count", { count: cards.length / 2 })}</div>
       </div>
     </div>
   );
+}
+
+/* helper to return cell class depending on number of columns */
+function cellSizeClass(cols) {
+  if (cols >= 5) return "w-12 h-12 text-lg";
+  if (cols === 4) return "w-16 h-16 text-xl";
+  return "w-20 h-20 text-2xl";
 }
