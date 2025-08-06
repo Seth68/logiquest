@@ -36,35 +36,73 @@ function generateDeck(rows, cols) {
   return shuffle([...pool, ...pool]);
 }
 
-export default function MemoryGame() {
+/**
+ * MemoryGame
+ * Props:
+ *  - onComplete(success, meta) optional
+ *  - difficulty ('easy'|'normal'|'hard') optional (default 'normal')
+ *  - initialSize (e.g. '4x4') optional
+ */
+export default function MemoryGame({ onComplete, difficulty = "normal", initialSize = "4x4" }) {
   const { t } = useTranslation();
 
-  const [size, setSize] = useState(SIZE_OPTIONS[0]);
-  const [difficulty, setDifficulty] = useState("normal");
-  const [cards, setCards] = useState(() => generateDeck(SIZE_OPTIONS[0].rows, SIZE_OPTIONS[0].cols));
+  const startSize = SIZE_OPTIONS.find(s => s.id === initialSize) ?? SIZE_OPTIONS[1];
+  const [size, setSize] = useState(startSize);
+  const [difficultyState, setDifficultyState] = useState(difficulty);
+
+  const [cards, setCards] = useState(() => generateDeck(startSize.rows, startSize.cols));
   const [flipped, setFlipped] = useState([]); // indices currently flipped
   const [matched, setMatched] = useState([]); // matched indices
   const [disabled, setDisabled] = useState(false);
-  const [started, setStarted] = useState(true);
   const timeoutRef = useRef(null);
+
+  // Timer & moves
+  const [running, setRunning] = useState(false);
+  const [seconds, setSeconds] = useState(0);
+  const intervalRef = useRef(null);
+  const [moves, setMoves] = useState(0);
 
   // sizes: compute cell size px depending on number of cols
   const cellPx = size.cols >= 5 ? 48 : size.cols === 4 ? 64 : 80;
   const gridTemplate = `repeat(${size.cols}, ${cellPx}px)`;
 
+  // Reset when size or difficulty changes (or when parent passes difficulty prop)
   useEffect(() => {
-    // when size or difficulty changes, reset deck
     startNewGame();
     // cleanup on unmount
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [size, difficulty]);
+  }, [size, difficultyState]);
 
+  // If parent changes difficulty prop, update internal state
   useEffect(() => {
-    // when two flipped, compare
+    setDifficultyState(difficulty);
+  }, [difficulty]);
+
+  // Timer effect
+  useEffect(() => {
+    if (running) {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      intervalRef.current = setInterval(() => setSeconds((s) => s + 1), 1000);
+    } else {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    }
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [running]);
+
+  // When two cards flipped -> compare, increment moves
+  useEffect(() => {
     if (flipped.length === 2) {
+      // count this as one move / attempt
+      setMoves((m) => m + 1);
+
       setDisabled(true);
       timeoutRef.current = setTimeout(() => {
         const [a, b] = flipped;
@@ -74,32 +112,44 @@ export default function MemoryGame() {
         setFlipped([]);
         setDisabled(false);
         timeoutRef.current = null;
-      }, DIFFICULTY[difficulty].flipDelay);
+      }, DIFFICULTY[difficultyState].flipDelay);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flipped]);
 
+  // Win detection: stop timer and notify parent when all matched
   useEffect(() => {
-    // win detection
     if (matched.length > 0 && matched.length === cards.length) {
-      // all matched
-      // (you could add celebration)
+      setRunning(false);
+      // notify parent that game is complete
+      if (typeof onComplete === "function") {
+        try {
+          onComplete(true, { time: seconds, moves });
+        } catch (e) {
+          // ignore parent errors
+        }
+      }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [matched, cards.length]);
 
   function startNewGame() {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
     const deck = generateDeck(size.rows, size.cols);
     setCards(deck);
     setFlipped([]);
     setMatched([]);
     setDisabled(false);
-    setStarted(true);
+    setMoves(0);
+    setSeconds(0);
+    setRunning(false);
 
-    // preview logic
-    const previewMs = DIFFICULTY[difficulty].preview;
+    // preview logic (show all then hide)
+    const previewMs = DIFFICULTY[difficultyState].preview;
     if (previewMs > 0) {
-      // flip all for preview, then hide
       setFlipped(deck.map((_, i) => i));
       timeoutRef.current = setTimeout(() => {
         setFlipped([]);
@@ -109,8 +159,13 @@ export default function MemoryGame() {
   }
 
   function handleClick(index) {
-    if (!started || disabled) return;
-    if (flipped.includes(index) || matched.includes(index)) return;
+    // ignore clicks while disabled or on already matched/flipped
+    if (disabled || flipped.includes(index) || matched.includes(index)) return;
+
+    // start timer on first real user action (if not already running)
+    if (!running && matched.length < cards.length) {
+      setRunning(true);
+    }
 
     if (flipped.length === 0) {
       setFlipped([index]);
@@ -124,9 +179,18 @@ export default function MemoryGame() {
 
   function restartGame() {
     startNewGame();
+    // notify parent optional: an abort/false
+    if (typeof onComplete === "function") {
+      try { onComplete(false, { aborted: true }); } catch {}
+    }
   }
 
-  // render tile: centered emoji or placeholder
+  function formatTime(s) {
+    const mm = Math.floor(s / 60).toString().padStart(2, "0");
+    const ss = (s % 60).toString().padStart(2, "0");
+    return `${mm}:${ss}`;
+  }
+
   function renderTile(index) {
     const isRevealed = flipped.includes(index) || matched.includes(index);
     const content = isRevealed ? cards[index] : "❓";
@@ -138,114 +202,127 @@ export default function MemoryGame() {
   }
 
   return (
-    <div className="text-center">
-      <h2 className="text-2xl font-semibold mb-4">{t("memory_game")}</h2>
+    // center the whole game block
+    <div className="min-h-[60vh] flex flex-col items-center justify-center">
+      <div className="text-center w-full max-w-md p-4">
+        <h2 className="text-2xl font-semibold mb-4">{t("memory_game")}</h2>
 
-      {/* Controls */}
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-4">
-        <div className="flex items-center gap-2">
-          <label className="font-medium">{t("size_label")}:</label>
-          <select
-            value={size.id}
-            onChange={(e) => {
-              const sel = SIZE_OPTIONS.find((s) => s.id === e.target.value);
-              setSize(sel);
-            }}
-            className="p-2 rounded border bg-white text-black"
-          >
-            {SIZE_OPTIONS.map((opt) => (
-              <option key={opt.id} value={opt.id}>
-                {opt.id} ({opt.rows}×{opt.cols})
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <label className="font-medium">{t("difficulty_label")}:</label>
+        {/* Controls */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-4">
           <div className="flex items-center gap-2">
-            <label className="flex items-center gap-1">
-              <input
-                type="radio"
-                name="difficulty"
-                value="easy"
-                checked={difficulty === "easy"}
-                onChange={() => setDifficulty("easy")}
-                className="accent-indigo-600"
-              />
-              <span className="ml-1">{t("easy")}</span>
-            </label>
-            <label className="flex items-center gap-1">
-              <input
-                type="radio"
-                name="difficulty"
-                value="normal"
-                checked={difficulty === "normal"}
-                onChange={() => setDifficulty("normal")}
-                className="accent-indigo-600"
-              />
-              <span className="ml-1">{t("normal")}</span>
-            </label>
-            <label className="flex items-center gap-1">
-              <input
-                type="radio"
-                name="difficulty"
-                value="hard"
-                checked={difficulty === "hard"}
-                onChange={() => setDifficulty("hard")}
-                className="accent-indigo-600"
-              />
-              <span className="ml-1">{t("hard")}</span>
-            </label>
+            <label className="font-medium">{t("size_label")}:</label>
+            <select
+              value={size.id}
+              onChange={(e) => {
+                const sel = SIZE_OPTIONS.find((s) => s.id === e.target.value);
+                if (sel) setSize(sel);
+              }}
+              className="p-2 rounded border bg-white text-black"
+            >
+              {SIZE_OPTIONS.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.id} ({opt.rows}×{opt.cols})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <label className="font-medium">{t("difficulty_label")}:</label>
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-1">
+                <input
+                  type="radio"
+                  name="difficulty"
+                  value="easy"
+                  checked={difficultyState === "easy"}
+                  onChange={() => setDifficultyState("easy")}
+                  className="accent-indigo-600"
+                />
+                <span className="ml-1">{t("easy")}</span>
+              </label>
+              <label className="flex items-center gap-1">
+                <input
+                  type="radio"
+                  name="difficulty"
+                  value="normal"
+                  checked={difficultyState === "normal"}
+                  onChange={() => setDifficultyState("normal")}
+                  className="accent-indigo-600"
+                />
+                <span className="ml-1">{t("normal")}</span>
+              </label>
+              <label className="flex items-center gap-1">
+                <input
+                  type="radio"
+                  name="difficulty"
+                  value="hard"
+                  checked={difficultyState === "hard"}
+                  onChange={() => setDifficultyState("hard")}
+                  className="accent-indigo-600"
+                />
+                <span className="ml-1">{t("hard")}</span>
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <button
+              onClick={restartGame}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded"
+            >
+              {t("start")}
+            </button>
           </div>
         </div>
 
-        <div>
+        {/* Info row: time + moves */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="font-medium">
+            {t("time")}: <span className="font-mono">{formatTime(seconds)}</span>
+          </div>
+          <div className="font-medium">
+            {t("moves")}: <span className="font-mono">{moves}</span>
+          </div>
+        </div>
+
+        {/* Grid: fixed column widths so tiles touch */}
+        <div
+          className="mx-auto"
+          style={{
+            display: "grid",
+            gridTemplateColumns: gridTemplate,
+            gap: 0,
+          }}
+        >
+          {cards.map((_, idx) => (
+            <div
+              key={idx}
+              onClick={() => handleClick(idx)}
+              className={`flex items-center justify-center box-border border-[0.5px] border-gray-200 ${cellSizeClass(
+                size.cols
+              )} bg-white cursor-pointer select-none`}
+            >
+              {renderTile(idx)}
+            </div>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div className="mt-4 flex items-center justify-center gap-4">
+          <div className="text-sm text-gray-700">
+            {t("pairs_count", { count: cards.length / 2 })}
+          </div>
+          {matched.length === cards.length && (
+            <div className="text-green-500 font-semibold">{t("solved")}</div>
+          )}
           <button
             onClick={restartGame}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded"
+            className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded"
           >
-            {t("start")}
+            {t("restart")}
           </button>
         </div>
-      </div>
-
-      {/* Grid: fixed column widths so tiles touch */}
-      <div
-        className="mx-auto"
-        style={{
-          display: "grid",
-          gridTemplateColumns: gridTemplate,
-          gap: "0.1rem",
-        }}
-      >
-        {cards.map((_, idx) => (
-          <div
-            key={idx}
-            onClick={() => handleClick(idx)}
-            className={`flex items-center justify-center box-border border-[0.5px] border-gray-200 ${cellSizeClass(
-              size.cols
-            )} bg-white cursor-pointer select-none`}
-          >
-            {renderTile(idx)}
-          </div>
-        ))}
-      </div>
-
-      {/* Footer */}
-      <div className="mt-4 flex items-center justify-center gap-4">
-        <div className="text-sm text-gray-700">
-          {t("pairs_count", { count: cards.length / 2 })}
-        </div>
-        {matched.length === cards.length && (
-          <div className="text-green-500 font-semibold">{t("solved")}</div>
-        )}
-        <button
-          onClick={restartGame}
-          className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded"
-        >
-          {t("restart")}
-        </button>
       </div>
     </div>
   );

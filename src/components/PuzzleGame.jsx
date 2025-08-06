@@ -85,13 +85,28 @@ function generateShuffledSolvable(n) {
   return shuffled;
 }
 
-export default function PuzzleGame() {
+/**
+ * PuzzleGame
+ * Props:
+ *  - onComplete(success, meta) optional
+ *  - difficulty ('easy'|'normal'|'hard') optional
+ *  - initialSizeId (e.g. "4x4") optional
+ */
+export default function PuzzleGame({ onComplete, difficulty = "normal", initialSizeId = null }) {
   const { t } = useTranslation();
 
-  const [size, setSize] = useState(SIZE_OPTIONS[0]);
-  const [tiles, setTiles] = useState(() =>
-    generateShuffledSolvable(SIZE_OPTIONS[0].n)
-  );
+  const mapDiffToSize = (d) => {
+    if (initialSizeId) {
+      const found = SIZE_OPTIONS.find((s) => s.id === initialSizeId);
+      if (found) return found;
+    }
+    if (d === "easy") return SIZE_OPTIONS[0];
+    if (d === "hard") return SIZE_OPTIONS[2];
+    return SIZE_OPTIONS[1];
+  };
+
+  const [size, setSize] = useState(mapDiffToSize(difficulty));
+  const [tiles, setTiles] = useState(() => generateShuffledSolvable(mapDiffToSize(difficulty).n));
   const [isComplete, setIsComplete] = useState(false);
 
   // Timer
@@ -99,7 +114,7 @@ export default function PuzzleGame() {
   const [seconds, setSeconds] = useState(0);
   const intervalRef = useRef(null);
 
-  // Move counter
+  // Move counter (fixed name)
   const [moves, setMoves] = useState(0);
 
   // Image mode
@@ -113,9 +128,16 @@ export default function PuzzleGame() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [size]);
 
-  // Stop timer on completion
+  // Stop timer on completion and notify parent
   useEffect(() => {
-    if (isComplete) stopTimer();
+    if (isComplete) {
+      stopTimer();
+      if (typeof onComplete === "function") {
+        try {
+          onComplete(true, { time: seconds, moves });
+        } catch {}
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isComplete]);
 
@@ -165,6 +187,7 @@ export default function PuzzleGame() {
   function isAdjacent(index, emptyIndex, n) {
     const rowI = Math.floor(index / n);
     const rowE = Math.floor(emptyIndex / n);
+    // same row neighbors or vertical neighbor
     return (
       (rowI === rowE && Math.abs(index - emptyIndex) === 1) ||
       Math.abs(index - emptyIndex) === n
@@ -283,8 +306,9 @@ export default function PuzzleGame() {
         );
       }
     }
+    // center numeric value: use flex centering (outer div already centers)
     return (
-      <span className="text-xl font-bold">
+      <span className="text-xl font-bold select-none">
         {tileValue !== null ? tileValue : ""}
       </span>
     );
@@ -302,7 +326,7 @@ export default function PuzzleGame() {
             value={size.id}
             onChange={(e) => {
               const sel = SIZE_OPTIONS.find((s) => s.id === e.target.value);
-              setSize(sel);
+              if (sel) setSize(sel);
             }}
             className="p-2 rounded border bg-white text-black"
           >
@@ -369,14 +393,14 @@ export default function PuzzleGame() {
         style={{
           display: "grid",
           gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`,
-          gap: "0.1rem",
+          gap: "0.05rem",
         }}
       >
         {tiles.map((tile, idx) => (
           <div
             key={idx}
             onClick={() => moveTile(idx)}
-            className={`flex items-center justify-center border-0 border-gray-200 rounded cursor-pointer select-none transition-all duration-150 bg-white text-black overflow-hidden ${cellClass} ${
+            className={`flex items-center justify-center border-[0.5px] border-gray-200 rounded cursor-pointer select-none transition-all duration-150 bg-white text-black overflow-hidden ${cellClass} ${
               tile === null
                 ? "bg-gray-300 cursor-default"
                 : "hover:brightness-95"
